@@ -18,11 +18,4 @@ def encodeSend(sock, data, num = 8):
 				data.push(0)
 			else:
 				data[j] = data[j] ^ data[j + 1];
-<<<<<<< HEAD
-	data = ''.join(data)
-	return sock.send(data)
-			
-=======
 	return sock.send(''.join(data))
-			
->>>>>>> 2f52e274cb5450144f2fb6d6e40aa9ac1827a5c4
