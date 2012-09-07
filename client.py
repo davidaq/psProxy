@@ -4,21 +4,25 @@ from common import *
 
 #some settings
 tsInfo = ('172.28.11.175',5050)
-PORT = 8080
+PORT = 5080
 
 
 lS=0
 CLOSE=False
+map=[]
 def returnThread(tS,sc):
-	tS.settimeout(0.1)
+	tS.settimeout(10)
 	while not CLOSE:
 		try:
 			buff=decodeRecv(tS,8)
 		except:
-			break
+			pass
+		print '<' ,buff
 		if not buff:
+			print 'end'
 			break
 		sc.send(buff)
+	tS.close()
 	sc.close()
 def serveThread(sc,addr):
 	'''Serve the connected client'''
@@ -34,8 +38,8 @@ def serveThread(sc,addr):
 			break
 		if not buff:
 			break
+		print '>' ,buff
 		encodeSend(tS,buff,8)
-	tS.close()
 	
 def acceptThread(lS):
 	'''Accpet a connection'''
@@ -46,6 +50,7 @@ def acceptThread(lS):
 			continue
 		sT=T.Thread(target=serveThread,args=(sc,addr))
 		sT.start()
+	lS.close()
 def begin(PORT,LIMIT,TIMEOUT):
 	'''Start the listening procces'''
 	global lS
@@ -56,8 +61,8 @@ def begin(PORT,LIMIT,TIMEOUT):
 	aT=T.Thread(target=acceptThread,args=(lS,))
 	aT.start()
 		
-begin(PORT,10,10)
-while True:
+begin(PORT,10,1)
+while not CLOSE:
 	cmd=raw_input(">")
 	if(cmd=="help"):
 		print ''''''

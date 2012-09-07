@@ -1,6 +1,8 @@
 import socket
+
 def decodeRecv(sock, num = 8):
 	data = sock.recv(num)
+	return data
 	data = list(data)
 	i = num - 2
 	while i >= 0:
@@ -8,6 +10,7 @@ def decodeRecv(sock, num = 8):
 		i -= 1
 	return ''.join(data)
 def encodeSend(sock, data, num = 8):
+	return sock.send(data)
 	data = list(data)
 	l = len(data)
 	for i in xrange(l, num):
