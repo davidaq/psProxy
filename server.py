@@ -2,14 +2,15 @@ import socket, sys, select, SocketServer
 from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
-	def handle_transfer(sock, remote):
+	def handle_transfer(self, sock, remote):
 		while True:
 			r, w, e = select.select([sock, remote], [], []);
 			if sock in r:
 				if encodeSend(remote, decodeRecv(sock)) <= 0:
 					break
 			if remote in r:
-				if encodeSend(sock, decodeRecv(remote)) <= 0:
+				data = decodeRecv(remote)
+				if encodeSend(sock, data) <= 0:
 					break
 	def handle(self):
 		try:
@@ -18,18 +19,26 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			header = decodeRecv(sock)
 			while '\n' not in header:
 				header += decodeRecv(sock)
-			fline = tmp[0, header.find('\n')]
+			fline = header[0 : header.find('\n')]
 			(verb, url, version) = fline.split()
+			print "fisrt:" + url
+			url = url.split('/')[2]
+			print url
 			if ':' in url:
-				(url, port) = url.split()
+				(url, port) = url.split(':')
 			else:
 				port = '80'
-			remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			remote.connect((url, int(port)))
-			remote.encodeSend(remote, header)
-			handle_transfer(sock, remote)
+			print "Client requsted to " + url + " Port:" + port
+			try:
+				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				remote.connect((url, int(port)))
+			except socket.error:
+				print 'Connection refused'
+			encodeSend(remote, header)
+			self.handle_transfer(sock, remote)
 		except socket.error:
-			print 'Socket Error: '.socket.error
+			print 'Socket Error.'
 def main():
 	server = ThreadingTCPServer(('', 5050), ProxyServer)
 	server.serve_forever()
