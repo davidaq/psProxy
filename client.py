@@ -9,9 +9,10 @@ PORT = 5080
 
 lS=0
 CLOSE=False
+SHOWIO
 map=[]
 def returnThread(tS,sc):
-	tS.settimeout(10)
+	tS.settimeout(0.05)
 	while not CLOSE:
 		try:
 			buff=decodeRecv(tS,8)
@@ -65,6 +66,9 @@ begin(PORT,10,1)
 while not CLOSE:
 	cmd=raw_input(">")
 	if(cmd=="help"):
-		print ''''''
+		print '''
+		A list of commands that you may use:
+			close  :  close the software
+		'''
 	elif(cmd=="close"):
 		CLOSE=True
