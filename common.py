@@ -2,9 +2,11 @@ import socket
 
 def decodeRecv(sock, num = 8):
 	#return sock.recv(num)
-	data = sock.recv(num)
+	data = ""
+	data += sock.recv(num)
+	if len(data) == 0: return ''
+	if len(data) < 8: data += sock.recv(num - len(data))
 	data = list(data)
-	if len(data) < num: return ''
 	i = num - 2
 	while i >= 0:
 		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))

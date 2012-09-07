@@ -20,9 +20,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				header += decodeRecv(sock)
 			fline = header[0 : header.find('\n')]
 			(verb, url, version) = fline.split()
-			#print "fisrt:" + url
 			url = url.split('/')[2]
-			#print url
 			if ':' in url:
 				(url, port) = url.split(':')
 			else:
