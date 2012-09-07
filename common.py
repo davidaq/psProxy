@@ -1,24 +1,17 @@
 import socket
 
 def decodeRecv(sock, num = 8):
+	#return sock.recv(num)
 	data = sock.recv(num)
-<<<<<<< HEAD
-	return data;
-=======
-	return data
->>>>>>> origin/master
 	data = list(data)
+	if len(data) < num: return ''
 	i = num - 2
 	while i >= 0:
 		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
 		i -= 1
-	#return ''.join(data)
+	return ''.join(data)
 def encodeSend(sock, data, num = 8):
-<<<<<<< HEAD
 	#return sock.send(data)
-=======
-	return sock.send(data)
->>>>>>> origin/master
 	data = list(data)
 	l = len(data)
 	for i in xrange(0, l, num):

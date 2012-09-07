@@ -9,8 +9,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if encodeSend(remote, decodeRecv(sock)) <= 0:
 					break
 			if remote in r:
-				data = decodeRecv(remote)
-				if encodeSend(sock, data) <= 0:
+				if encodeSend(sock, decodeRecv(remote)) <= 0:
 					break
 	def handle(self):
 		try:
@@ -21,9 +20,9 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				header += decodeRecv(sock)
 			fline = header[0 : header.find('\n')]
 			(verb, url, version) = fline.split()
-			print "fisrt:" + url
+			#print "fisrt:" + url
 			url = url.split('/')[2]
-			print url
+			#print url
 			if ':' in url:
 				(url, port) = url.split(':')
 			else:
@@ -40,7 +39,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		except socket.error:
 			print 'Socket Error.'
 def main():
-	server = ThreadingTCPServer(('', 5050), ProxyServer)
+	server = ThreadingTCPServer(('', 5060), ProxyServer)
 	server.serve_forever()
 if __name__ == '__main__':
 	main()
