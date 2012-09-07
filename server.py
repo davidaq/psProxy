@@ -1,5 +1,5 @@
 import socket, sys, select, SocketServer
-import common
+from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle_transfer(sock, remote):
