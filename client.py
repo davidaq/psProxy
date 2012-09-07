@@ -3,7 +3,7 @@ import threading as T
 from common import *
 
 #some settings
-tsInfo = ('',3333)
+tsInfo = ('172.28.11.175',5050)
 PORT = 8080
 
 
@@ -34,7 +34,7 @@ def serveThread(sc,addr):
 			break
 		if not buff:
 			break
-		tS.encodeSend(buff)
+		encodeSend(tS,buff,8)
 	tS.close()
 	
 def acceptThread(lS):
@@ -58,8 +58,8 @@ def begin(PORT,LIMIT,TIMEOUT):
 		
 begin(PORT,10,10)
 while True:
-	cmd=input(">")
+	cmd=raw_input(">")
 	if(cmd=="help"):
 		print ''''''
-	else if(cmd=="close"):
+	elif(cmd=="close"):
 		CLOSE=True
