@@ -15,7 +15,7 @@ def encodeSend(sock, data, num = 8):
 			if j == l - 1:
 				pass
 			elif j >= l:
-				data.push(0)
+				data.append(0)
 			else:
 				data[j] = data[j] ^ data[j + 1];
 	return sock.send(''.join(data))
