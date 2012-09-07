@@ -7,10 +7,10 @@ def decodeRecv(sock, num = 8):
 	return data
 def encodeSend(sock, data, num = 8):
 	for i in xrange(len(data), num):
-		for j in xrange(num):
+		for j in xrange(i, i + num):
 			if j == l - 1:
 				pass
-			elif j > l:
+			elif j >= l:
 				data[j] = 0
 			else:
 				data[j] = data[j] ^ data[j + 1];
