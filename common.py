@@ -4,7 +4,7 @@ def decodeRecv(sock, num = 8):
 	data = list(data)
 	i = num - 2
 	while i >= 0:
-		data[i] = data[i] ^ data[i + 1]
+		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
 		i -= 1
 	return ''.join(data)
 def encodeSend(sock, data, num = 8):
@@ -15,8 +15,11 @@ def encodeSend(sock, data, num = 8):
 			if j == l - 1:
 				pass
 			elif j >= l:
+<<<<<<< HEAD
 				data.append(0)
+=======
+				data.append(chr(0))
+>>>>>>> origin/master
 			else:
-				data[j] = data[j] ^ data[j + 1];
+				data[j] = chr(ord(data[j]) ^ ord(data[j + 1]))
 	return sock.send(''.join(data))
-			
