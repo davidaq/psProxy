@@ -13,7 +13,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					break
 	def handle(self):
 		try:
-			print 'In comming connection from ', self.clent_address 
+			print 'In comming connection from ', self.client_address 
 			sock = self.request
 			header = decodeRecv(sock)
 			while '\n' not in header:
@@ -32,6 +32,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			print 'Socket Error: '.socket.error
 def main():
 	server = ThreadingTCPServer(('', 5050), ProxyServer)
-	server.serve_forever
+	server.serve_forever()
 if __name__ == '__main__':
 	main()
