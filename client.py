@@ -1,23 +1,45 @@
 import socket as S
 import threading as T
+from common import *
+
+#some settings
+tsInfo = ('',3333)
+PORT = 8080
+
 
 lS=0
-tS=0
-tsInfo = ('',3333)
-def serveThread(sc,addr):
-	'''Serve the connected client'''
-	sc.settimeout(0.1)
-	data=''
-	tsInfo
-	while True:
-		buff=sc.recv(1024)
+CLOSE=False
+def returnThread(tS,sc):
+	tS.settimeout(0.1)
+	while not CLOSE:
+		try:
+			buff=decodeRecv(tS,8)
+		except:
+			break
 		if not buff:
 			break
-		data+=buff
+		sc.send(buff)
+	sc.close()
+def serveThread(sc,addr):
+	'''Serve the connected client'''
+	sc.settimeout(0.02)
+	tS=S.socket(S.AF_INET,S.SOCK_STREAM)
+	tS.connect(tsInfo)
+	rT=T.Thread(target=returnThread,args=(tS,sc))
+	rT.start()
+	while not CLOSE:
+		try:
+			buff=sc.recv(8)
+		except:
+			break
+		if not buff:
+			break
+		tS.encodeSend(buff)
+	tS.close()
 	
 def acceptThread(lS):
 	'''Accpet a connection'''
-	while True:
+	while not CLOSE:
 		try:
 			(sc,addr)=lS.accept()
 		except:
@@ -27,8 +49,6 @@ def acceptThread(lS):
 def begin(PORT,LIMIT,TIMEOUT):
 	'''Start the listening procces'''
 	global lS
-	global tS
-	tS=S.socket(S.AF_INET,S.SOCK_STREAM)
 	lS=S.socket(S.AF_INET,S.SOCK_STREAM)
 	lS.settimeout(TIMEOUT)
 	lS.bind(('127.0.0.1',PORT))
@@ -36,4 +56,10 @@ def begin(PORT,LIMIT,TIMEOUT):
 	aT=T.Thread(target=acceptThread,args=(lS,))
 	aT.start()
 		
-begin(8080,10,10)
+begin(PORT,10,10)
+while True:
+	cmd=input(">")
+	if(cmd=="help"):
+		print ''''''
+	else if(cmd=="close"):
+		CLOSE=True
