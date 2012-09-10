@@ -1,10 +1,7 @@
 import socket, sys, select, SocketServer, time, threading, os
-from common2 import *
+from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
-	def __init__(self, request, client_addr, server):
-		self.debug = False	#Debug mode
-		SocketServer.StreamRequestHandler.__init__(self, request, client_addr, server)
 	def handle_transfer(self, sock, remote):
 		while True:
 			r, w, e = select.select([sock, remote], [], []);
@@ -12,9 +9,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if remote.send(decodeRecv(sock, 4096)) <= 0:
 					break
 			if remote in r:
-				data = remote.recv(4096)
-				#print "Received from client: " + data
-				if encodeSend(sock, data) <= 0:
+				if encodeSend(sock, remote.recv(4096)) <= 0:
 					break
 	def handle(self):
 		try:
@@ -32,8 +27,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			data = decodeRecv(sock, 4)	#Maybe unsafe
 			mode = ord(data[1])
 			addrtype = ord(data[3])
-			print "Mode: " + str(mode)
-			print "Addrtype: " + str(addrtype)
 			if addrtype == 1:		#IPV4
 				addr = socket.inet_ntoa(decodeRecv(sock, 4));
 			elif addrtype == 3: 	#Domain
@@ -53,6 +46,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			except socket.error:
 				print 'Connection refused'
 			encodeSend(sock, reply)
+			#3. Tranfer!!
 			if reply[1] == '\x00':
 				if mode == 1: #1. connection mode
 					self.handle_transfer(sock, remote)
@@ -61,12 +55,13 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 def main():
 	server = ThreadingTCPServer(('', 5060), ProxyServer)
 	server_thread = threading.Thread(target=server.serve_forever)
-	server_thread.daemon = True
+	server_thread.daemon = False
 	server_thread.start()
-	while True:
-		tmp = raw_input(">>> ")
-		if tmp == 'shutdown':
-			server.shutdown()
-			return
+#	while True:
+#		pass
+#		tmp = raw_input(">>> ")
+#		if tmp == 'shutdown':
+#			server.shutdown()
+#			return
 if __name__ == '__main__':
 	main()

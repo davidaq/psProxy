@@ -1,5 +1,5 @@
 import socket, sys, select, SocketServer, time, threading, os
-from common2 import *
+from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle_transfer(self, sock, remote):
@@ -22,7 +22,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			try:
 				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				remote.connect(("127.0.0.1", 5060))
+				remote.connect(("184.22.246.194", 5060))
 			except socket.error:
 				print 'Connection refused'
 			self.handle_transfer(sock, remote)
@@ -31,12 +31,12 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 def main():
 	server = ThreadingTCPServer(('', 5070), ProxyServer)
 	server_thread = threading.Thread(target=server.serve_forever)
-	server_thread.daemon = True
+	server_thread.daemon = False
 	server_thread.start()
-	while True:
-		tmp = raw_input(">>> ")
-		if tmp == 'shutdown' or tmp == 'close':
-			server.shutdown()
-			return
+#	while True:
+#		tmp = raw_input(">>> ")
+#		if tmp == 'shutdown' or tmp == 'close':
+#			server.shutdown()
+#			return
 if __name__ == '__main__':
 	main()

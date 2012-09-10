@@ -8,8 +8,3 @@ def encodeSend(sock, data):
 	data = list(data)
 	data = map(swap, data)
 	return sock.send(''.join(data))
-def printDataInt(data):
-	for i in data:
-		print str(ord(i)) + " ",
-	print ""
-	
