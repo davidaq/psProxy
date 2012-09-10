@@ -1,27 +1,16 @@
-import socket
+import socket, struct
 
-def decodeRecv(sock, num = 8):
-	#return sock.recv(num)
-	data = ""
-	data += sock.recv(num)
-	if len(data) == 0: return ''
-	if len(data) < 8: data += sock.recv(num - len(data))
-	data = list(data)
-	i = num - 2
-	while i >= 0:
+def decodeRecv(sock):
+	head = sock.recv(4)
+	if head == '': return ''
+	l = struct.unpack('>i', head)[0]
+	data = list(sock.recv(l))
+	for i in reversed(xrange(l - 1)):
 		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
-		i -= 1
 	return ''.join(data)
-def encodeSend(sock, data, num = 8):
-	#return sock.send(data)
+def encodeSend(sock, data):
 	data = list(data)
 	l = len(data)
-	for i in xrange(0, l, num):
-		for j in xrange(i, i + num):
-			if j == l - 1:
-				pass
-			elif j >= l:
-				data.append(chr(0))
-			else:
-				data[j] = chr(ord(data[j]) ^ ord(data[j + 1]))
-	return sock.send(''.join(data))
+	for i in xrange(l - 1):
+		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
+	return sock.send(struct.pack('>i', len(data)) + ''.join(data))
