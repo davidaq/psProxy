@@ -1,74 +1,42 @@
-import socket as S
-import threading as T
-from common import *
-
-#some settings
-tsInfo = ('172.28.11.175',5050)
-PORT = 5080
-
-
-lS=0
-CLOSE=False
-SHOWIO
-map=[]
-def returnThread(tS,sc):
-	tS.settimeout(0.05)
-	while not CLOSE:
+import socket, sys, select, SocketServer, time, threading, os
+from common2 import *
+class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
+class ProxyServer(SocketServer.StreamRequestHandler):
+	def handle_transfer(self, sock, remote):
+		while True:
+			r, w, e = select.select([sock, remote], [], []);
+			if sock in r:
+				data = sock.recv(4096)
+				#print 'Data sent to remote: ' + data
+				if encodeSend(remote, data) <= 0:
+					break
+			if remote in r:
+				data = decodeRecv(remote, 4096)
+				#print 'Data received from remote:' + data
+				if sock.send(data) <= 0:
+					break
+	def handle(self):
 		try:
-			buff=decodeRecv(tS,8)
-		except:
-			pass
-		print '<' ,buff
-		if not buff:
-			print 'end'
-			break
-		sc.send(buff)
-	tS.close()
-	sc.close()
-def serveThread(sc,addr):
-	'''Serve the connected client'''
-	sc.settimeout(0.02)
-	tS=S.socket(S.AF_INET,S.SOCK_STREAM)
-	tS.connect(tsInfo)
-	rT=T.Thread(target=returnThread,args=(tS,sc))
-	rT.start()
-	while not CLOSE:
-		try:
-			buff=sc.recv(8)
-		except:
-			break
-		if not buff:
-			break
-		print '>' ,buff
-		encodeSend(tS,buff,8)
-	
-def acceptThread(lS):
-	'''Accpet a connection'''
-	while not CLOSE:
-		try:
-			(sc,addr)=lS.accept()
-		except:
-			continue
-		sT=T.Thread(target=serveThread,args=(sc,addr))
-		sT.start()
-	lS.close()
-def begin(PORT,LIMIT,TIMEOUT):
-	'''Start the listening procces'''
-	global lS
-	lS=S.socket(S.AF_INET,S.SOCK_STREAM)
-	lS.settimeout(TIMEOUT)
-	lS.bind(('127.0.0.1',PORT))
-	lS.listen(LIMIT)
-	aT=T.Thread(target=acceptThread,args=(lS,))
-	aT.start()
-		
-begin(PORT,10,1)
-while not CLOSE:
-	cmd=raw_input(">")
-	if(cmd=="help"):
-		print '''
-		A list of commands that you may use:
-			close  :  close the software
-		'''
-	elif(cmd=="close"):
-		CLOSE=True
+			print 'In comming connection from ', self.client_address 
+			sock = self.request
+			try:
+				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				remote.connect(("127.0.0.1", 5060))
+			except socket.error:
+				print 'Connection refused'
+			self.handle_transfer(sock, remote)
+		except socket.error, msg:
+			print 'Socket Error: ' + os.strerror(msg[0])
+def main():
+	server = ThreadingTCPServer(('', 5070), ProxyServer)
+	server_thread = threading.Thread(target=server.serve_forever)
+	server_thread.daemon = True
+	server_thread.start()
+	while True:
+		tmp = raw_input(">>> ")
+		if tmp == 'shutdown' or tmp == 'close':
+			server.shutdown()
+			return
+if __name__ == '__main__':
+	main()

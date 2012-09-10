@@ -1,16 +1,15 @@
 import socket, struct
-
-def decodeRecv(sock):
-	head = sock.recv(4)
-	if head == '': return ''
-	l = struct.unpack('>i', head)[0]
-	data = list(sock.recv(l))
-	for i in reversed(xrange(l - 1)):
-		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
+swap = lambda data: chr((((ord(data) & 240) >> 4) | (ord(data) << 4)) & 255)
+def decodeRecv(sock, num = 4096):
+	data = list(sock.recv(num))
+	data = map(swap, data)
 	return ''.join(data)
 def encodeSend(sock, data):
 	data = list(data)
-	l = len(data)
-	for i in xrange(l - 1):
-		data[i] = chr(ord(data[i]) ^ ord(data[i + 1]))
-	return sock.send(struct.pack('>i', len(data)) + ''.join(data))
+	data = map(swap, data)
+	return sock.send(''.join(data))
+def printDataInt(data):
+	for i in data:
+		print str(ord(i)) + " ",
+	print ""
+	
