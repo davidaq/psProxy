@@ -14,8 +14,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle(self):
 		try:
 			print 'Socks connection from ', self.client_address 
-			
-			# The Socks5 is partly moved to client
 			sock = self.request
 #			while True:
 #				header = decodeRecv(sock)
@@ -23,8 +21,32 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 #				encodeSend(sock, header)
 #			return
 			#1. Version
-			#data = decodeRecv(sock, 262); # Header
-			#encodeSend(sock, b"\x05\x00");
+			data = decodeRecv(sock, 262); # Header
+			if data[0:5] == b'\x10\x12\x00\xFF\xEE':
+				# This connection is only a speed tester
+				addrtype = ord(data[5])
+				if addrtype == 1:		#IPV4
+					addr = socket.inet_ntoa(data[6:10])
+					port = data[10:12]
+				elif addrtype == 3: 	#Domain
+					port = 7+ord(data[6])
+					addr = data[7:port]
+					port = data[port:port+2]
+				port = struct.unpack('>H', port)[0]
+				print 'Speed tester to '+str(addr)+':'+str(port)
+				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+				try:
+					remote.connect((addr, port))
+					remote.close()
+				except Exception,e:
+					print 'Error:',e
+					return
+				sock.send(b'\x10\x12\x00\xFF\xEE')
+				sock.close()
+				return
+			print 'Proxy link'
+			encodeSend(sock, b"\x05\x00");
 			#2. Request
 			data = decodeRecv(sock, 4)	#Maybe unsafe
 			mode = ord(data[1])

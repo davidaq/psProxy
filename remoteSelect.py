@@ -8,7 +8,7 @@ remoteList=(
 desireList={}
 def select(sock):
 	# TODO read and preserve the socks5 header and resolve the target host
-	socksHead1 = sock.recv(262)
+	sock.recv(262)
 	sock.send(b"\x05\x00")
 	data = sock.recv(4)
 	socksHead = data
@@ -27,15 +27,15 @@ def select(sock):
 	data = sock.recv(nextLen+2)
 	socksHead += data
 	addrKey += data
-	remote = __select(sock,addrKey)
+	remote = __select(sock,socksHead)
 	if remote is False:
 		return False
-	encodeSend(remote,socksHead1)
-	decodeRecv(remote,4)
-	encodeSend(remote,socksHead)
+	#encodeSend(remote,socksHead1)
+	#decodeRecv(remote,4)
+	#encodeSend(remote,socksHead)
 	return remote
 
-def __select(sock,addrKey):
+def __select(sock,socksHead):
 	global remoteList,desireList
 	# check if the address already exists in the desired list and isn't expired
 	print 'Desire test'
@@ -45,6 +45,7 @@ def __select(sock,addrKey):
 				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 				remote.connect(desireList[addrKey][1])
+				remote.send(socksHead)
 				return remote
 			except:
 				pass
