@@ -57,8 +57,11 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		except Exception:
 			print "Other exception: " , sys.exc_info()[0]
 def main():
-	server = ThreadingTCPServer(('', 5060), ProxyServer)
-	server_thread = threading.Thread(target=server.serve_forever)
-	server_thread.start()
+	try:
+		server = ThreadingTCPServer(('', 5060), ProxyServer)
+		server_thread = threading.Thread(target=server.serve_forever)
+		server_thread.start()
+	except Exception:
+		print "Exception in main: " , sys.exc_info()[0]
 if __name__ == '__main__':
 	main()
