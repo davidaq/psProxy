@@ -14,14 +14,8 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle(self):
 		try:
 			print 'Socks connection from ', self.client_address 
-			
 			# The Socks5 is partly moved to client
 			sock = self.request
-#			while True:
-#				header = decodeRecv(sock)
-#				print "Sending back: " + header
-#				encodeSend(sock, header)
-#			return
 			#1. Version
 			#data = decodeRecv(sock, 262); # Header
 			#encodeSend(sock, b"\x05\x00");
@@ -56,16 +50,15 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					self.handle_transfer(sock, remote)
 		except socket.error, msg:
 			print 'Socket Error: ' + os.strerror(msg[0])
+		except IOError as e:
+		    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		except IndexError:
+		    print "IndexError! OMG!!!"
+		except Exception:
+			print "Other exception: " , sys.exc_info()[0]
 def main():
 	server = ThreadingTCPServer(('', 5060), ProxyServer)
 	server_thread = threading.Thread(target=server.serve_forever)
-	server_thread.daemon = False
 	server_thread.start()
-#	while True:
-#		pass
-#		tmp = raw_input(">>> ")
-#		if tmp == 'shutdown':
-#			server.shutdown()
-#			return
 if __name__ == '__main__':
 	main()
