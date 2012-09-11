@@ -7,4 +7,8 @@ def decodeRecv(sock, num = 4096):
 def encodeSend(sock, data):
 	data = list(data)
 	data = map(swap, data)
+<<<<<<< HEAD
 	return sock.send(''.join(data))
+=======
+	return sock.send(''.join(data))
+>>>>>>> 6a35c3d5039937a739a29eb71b67c54004280e58

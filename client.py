@@ -1,7 +1,6 @@
 import socket, sys, select, SocketServer, time, threading, os
 from common import *
 import remoteSelect
-
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle_transfer(self, sock, remote):
@@ -32,7 +31,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				#remote.connect(("184.22.246.194", 5060))
 			#except socket.error:
 			#	print 'Connection refused'
-			#	return
 			self.handle_transfer(sock, remote)
 		except socket.error, msg:
 			print 'Socket Error: ' + os.strerror(msg[0])
