@@ -1,7 +1,7 @@
 # Options
 
 remoteList=(
-("184.22.246.194", 5060), # Ming's VPS
+#("184.22.246.194", 5060), # Ming's VPS
 ("127.0.0.1", 5060), # Localhost for single layer proxy
 )
 
@@ -14,38 +14,33 @@ class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): p
 class ProxyServer(SocketServer.StreamRequestHandler):
 	def check_remote(self, linkinfo, sockshead, links):
 		try:
-			try:
-				remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				remote.settimeout(4)  #2 second
-				remote.connect(linkinfo)
-			except socket.error:
-				print 'Bloody unknown error!'
+			remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			remote.settimeout(4)  # 4 second
+			remote.connect(linkinfo)
 			encodeSend(remote, sockshead)
-			time.sleep(0.1)		#In case of bloody fucking timed out
-			data = decodeRecv(remote,4)
-			reply = data
-			addrtype = ord(data[3])
+			reply = decodeRecv(remote, 4)
+			if reply[1] != '\x00':
+				remote.close()
+				return [False, reply]
+			addrtype = ord(reply[3])
 			if addrtype == 1:		#IPV4
 				nextLen = 4
 			elif addrtype == 3: 	#Domain
 				nextLen = ord(decodeRecv(remote, 1)[0])
 			nextLen += 2	#For port
-			data = decodeRecv(remote,nextLen)
-			reply += data
-			if len(data) == nextLen and reply[1]== '\x00':
+			reply += decodeRecv(remote,nextLen)
+			if len(reply) == nextLen + 4:
 				links.append(remote)
 				remote.settimeout(30)
 				return [True, reply]
-			else:
-				remote.close()
 		except socket.error:
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			print 'Socket Error in check_remote(): '
 			traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout)
 			print "link info: ", linkinfo 
 			remote.close()
-		return [False, " "]
+		return [False, ""]
 	def handle_transfer(self, sock, links, addrKey):
 		global desireList
 		links.append(sock)
@@ -84,7 +79,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle(self):
 		global desireList,remoteList
 		try:
-			print 'In comming connection from ', self.client_address 
+			print 'Incomming connection from ', self.client_address 
 			sock = self.request			
 			sock.recv(262)
 			sock.send(b"\x05\x00")
@@ -97,22 +92,21 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			elif addrtype == 3: 	#Domain
 				data = sock.recv(1)
 				socksHead += data
-				#addrKey += data
 				nextLen = ord(data[0])
 			data = sock.recv(nextLen+2)
 			socksHead += data
 			addrKey = data
 			links=[]
-			# Update desire list
+			# Update desire list if exist and expire
 			if addrKey in desireList and desireList[addrKey][0] > time.time():
 				flag, reply = self.check_remote(desireList[addrKey][1], socksHead, links)
 			# Create desire list
 			if len(links) == 0:
 				for linkinfo in remoteList:
 					flag, ret = self.check_remote(linkinfo, socksHead, links)
-					if flag: reply = ret
-				if len(links)==0:
-					print 'No usable remote proxy!'
+					if flag: reply = ret	#Server support this protocol
+				if len(links) == 0:
+					print 'No usable remote proxy or not support the protocol!'
 					sock.close()
 					return
 			# Global check

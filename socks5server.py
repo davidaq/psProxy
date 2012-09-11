@@ -29,24 +29,28 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				addr = decodeRecv(sock, ord(decodeRecv(sock, 1)[0]))
 			port = struct.unpack('>H', decodeRecv(sock, 2))[0]
 			reply = b"\x05\x00\x00\x01"
-			print 'Request to ' + addr + '\t Port: ' + str(port)
+			print 'Request to ' + addr + ' Port: ' + str(port)
 			try:
 				if mode == 1: #1. Connection mode
 					remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+					remote.settimeout(2) # 2 second
 					remote.connect((addr, port))
+					local = remote.getsockname()
+					reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
 				else:
 					reply = b"\x05\x07\x00\x01"
-				local = remote.getsockname()
-				reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
 			except socket.error:
-				print 'Connection refused'
+				print 'Connection refused or time out!'
+				reply = b"\x05\x07\x00\x01"
+				encodeSend(sock, reply)
 				sock.close()
 				return
 			encodeSend(sock, reply)
 			#3. Tranfer!!
 			if reply[1] == '\x00':
 				if mode == 1: #1. connection mode
+					remote.settimeout(30)
 					self.handle_transfer(sock, remote)
 		except socket.error, msg:
 			print 'Socket Error: ' + os.strerror(msg[0])
