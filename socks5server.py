@@ -34,24 +34,27 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if mode == 1: #1. Connection mode
 					remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-					remote.settimeout(2) # 2 second
+					remote.settimeout(3) # 2 second
 					remote.connect((addr, port))
 					local = remote.getsockname()
 					reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
 				else:
 					reply = b"\x05\x07\x00\x01"
 			except socket.error:
-				print 'Connection refused or time out!'
+				print 'Connection refused or time out to ', addr
 				reply = b"\x05\x07\x00\x01"
 				encodeSend(sock, reply)
 				sock.close()
+				remote.close()
 				return
 			encodeSend(sock, reply)
 			#3. Tranfer!!
 			if reply[1] == '\x00':
 				if mode == 1: #1. connection mode
-					remote.settimeout(30)
+					remote.settimeout(10)
 					self.handle_transfer(sock, remote)
+			sock.close()
+			remote.close()
 		except socket.error, msg:
 			print 'Socket Error: ' + os.strerror(msg[0])
 		except IOError as e:
@@ -62,6 +65,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			print "Other exception: " , sys.exc_info()[0]
 def main():
 	try:
+		threading.stack_size(1024 * 512)
 		server = ThreadingTCPServer(('', 5060), ProxyServer)
 		server_thread = threading.Thread(target=server.serve_forever)
 		server_thread.start()

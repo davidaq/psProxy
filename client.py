@@ -16,9 +16,9 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		try:
 			remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			remote.settimeout(4)  # 4 second
+			remote.settimeout(5)  # 5 second
 			remote.connect(linkinfo)
-			encodeSend(remote, sockshead)
+			encodeSend(remote, sockshead)	#Resend head
 			reply = decodeRecv(remote, 4)
 			if reply[1] != '\x00':
 				remote.close()
@@ -32,19 +32,15 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			reply += decodeRecv(remote,nextLen)
 			if len(reply) == nextLen + 4:
 				links.append(remote)
-				remote.settimeout(30)
+				remote.settimeout(10)
 				return [True, reply]
-		except socket.error:
-			exc_type, exc_value, exc_traceback = sys.exc_info()
-			print 'Socket Error in check_remote(): '
-			traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout)
-			print "link info: ", linkinfo 
+		except socket.error, msg:
+			print "Error in check_remote: ", msg, "to: ", linkinfo
 			remote.close()
 		return [False, ""]
 	def handle_transfer(self, sock, links, addrKey):
 		global desireList
 		links.append(sock)
-		#print 'Start handling....'
 		ok=True
 		while ok:
 			r, w, e = select.select(links, [], []);
@@ -83,7 +79,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			sock = self.request			
 			sock.recv(262)
 			sock.send(b"\x05\x00")
-			data = sock.recv(4)
+			data = sock.recv(5)
 			socksHead = data
 			mode = ord(data[1])
 			addrtype = ord(data[3])
@@ -106,7 +102,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					flag, ret = self.check_remote(linkinfo, socksHead, links)
 					if flag: reply = ret	#Server support this protocol
 				if len(links) == 0:
-					print 'No usable remote proxy or not support the protocol!'
+					print 'No usable remote proxy for ' + addrKey
 					sock.close()
 					return
 			# Global check
@@ -114,13 +110,11 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			self.handle_transfer(sock, links, addrKey)
 		except socket.error, msg:
 			print 'Socket Error: ' + os.strerror(msg[0])
-		except IOError as e:
-		    print "I/O error({0}): {1}".format(e.errno, e.strerror)
 		except IndexError:
 		    print "IndexError! OMG!!!"
 		except Exception:
 			exc_type, exc_value, exc_traceback = sys.exc_info()
-			print "Other Exception:"
+			print "Other Exception: "
 			traceback.print_exception(exc_type, exc_value, exc_traceback,
 			                              limit=2, file=sys.stdout)
 def main():
