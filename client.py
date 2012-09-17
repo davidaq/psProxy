@@ -66,7 +66,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 						l.close()
 						if l in r: r.remove(l)
 					links= [sock, link]
-					desireList[addrKey] = (time.time() + 1200, link.getpeername())
+					desireList[addrKey] = (time.time() + 3600, link.getpeername())
 					if sock.send(data) <= 0:
 						ok = False
 						break
@@ -119,6 +119,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			                              limit=2, file=sys.stdout)
 def main():
 	try:
+		threading.stack_size(1024 * 512)
 		server = ThreadingTCPServer(('', 5070), ProxyServer)
 		server_thread = threading.Thread(target=server.serve_forever)
 		server_thread.start()
