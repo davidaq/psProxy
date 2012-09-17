@@ -101,15 +101,16 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			socksHead += sock.recv(2); #Port
 			links=[]
 			# Update desire list if exist and expire
-			if addr in ipList and ipList[addr] in desireList and desireList[ipList[addr]][0] > time.time():
+			if (addr in ipList and 
+				ipList[addr] in desireList and 
+				desireList[ipList[addr]][0] > time.time()):
 				flag, reply, ip = self.check_remote(desireList[ipList[addr]][1], socksHead, links)
 			# Create desire list
 			if len(links) == 0:
 				for linkinfo in remoteList:
 					flag, ret, tmp_ip = self.check_remote(linkinfo, socksHead, links)
 					if flag: 	#Server support this protocol
-						reply = ret
-						ip = tmp_ip
+						reply, ip = ret, tmp_ip
 						ipList[addr] = ip
 				if len(links) == 0:
 					print 'No usable remote proxy for ' + addr
