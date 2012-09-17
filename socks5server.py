@@ -5,12 +5,17 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle_transfer(self, sock, remote):
 		while True:
 			r, w, e = select.select([sock, remote], [], []);
+			flag = False
 			if sock in r:
+				flag = True
 				if remote.send(decodeRecv(sock, 4096)) <= 0:
 					break
 			if remote in r:
+				flag = True
 				if encodeSend(sock, remote.recv(4096)) <= 0:
 					break
+			if not flag: 
+				break
 	def handle(self):
 		try:
 			print 'Socks connection from ', self.client_address 
@@ -34,10 +39,11 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if mode == 1: #1. Connection mode
 					remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-					remote.settimeout(3) # 2 second
+					remote.settimeout(2.5) # 2 second
 					remote.connect((addr, port))
 					local = remote.getsockname()
 					reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
+					ip = socket.inet_aton(remote.getpeername()[0])
 				else:
 					reply = b"\x05\x07\x00\x01"
 			except socket.error:
@@ -48,6 +54,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				remote.close()
 				return
 			encodeSend(sock, reply)
+			encodeSend(sock, ip);
 			#3. Tranfer!!
 			if reply[1] == '\x00':
 				if mode == 1: #1. connection mode
