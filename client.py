@@ -1,8 +1,8 @@
 # Options
 
 remoteList=(
-("184.22.246.194", 5060), # Ming's VPS
 ("127.0.0.1", 5060), # Localhost for single layer proxy
+("184.22.246.194", 5060), # Ming's VPS
 )
 
 # CODE
