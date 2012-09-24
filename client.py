@@ -61,9 +61,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if link is sock:	#Client socket -- only one
 					data = sock.recv(4096)
 					if len(data) == 0:
-						#print "Damn Happend!\n!\n"
-						#flag = False
-						#break
 						links.remove(sock)
 						continue
 					flag = True
@@ -72,6 +69,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 							links.remove(l)
 							if l in r: r.remove(l)
 							l.close()
+					time.sleep(0.05)
 				else:				#Client socket
 					data = decodeRecv(link, 4096)
 					if len(data) == 0: 
@@ -126,14 +124,14 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			links=[]
 			
 			# Update desire list if exist and expire
-			sema_ip.acquire()
-			sema_desire.acquire()
+			#sema_ip.acquire()
+			#sema_desire.acquire()
 			if (addr in iplist and 
 				iplist[addr] in desirelist and 
 				desirelist[iplist[addr]][0] > time.time()):
 				flag, reply, ip = self.check_remote(desirelist[iplist[addr]][1], socksHead, links)
-			sema_ip.release()
-			sema_desire.release()
+			#sema_ip.release()
+			#sema_desire.release()
 			# Create desire list
 			if len(links) == 0:
 				for linkinfo in remoteList:
@@ -141,6 +139,9 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					if flag: 	#Server support this protocol
 						reply, ip = ret, tmp_ip
 						sema_ip.acquire()
+						#Solve DNS hijack problem
+						if addr in iplist and iplist[addr] != ip:
+							links.remove(links[len(links) - 2])
 						iplist[addr] = ip
 						sema_ip.release()
 				if len(links) == 0:
