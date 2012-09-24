@@ -3,19 +3,25 @@ from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 class ProxyServer(SocketServer.StreamRequestHandler):
 	def handle_transfer(self, sock, remote):
-		while True:
-			r, w, e = select.select([sock, remote], [], []);
+		flag = True
+		links = [sock, remote];
+		while flag:
+			r, w, e = select.select(links, [], []);
 			flag = False
 			if sock in r:
-				flag = True
-				if remote.send(decodeRecv(sock, 4096)) <= 0:
-					break
+				data = decodeRecv(sock, 4096)
+				if len(data) > 0: 
+					flag = True
+					if remote.send(data) <= 0: break
+				else:
+					links.remove(sock)
 			if remote in r:
-				flag = True
-				if encodeSend(sock, remote.recv(4096)) <= 0:
-					break
-			if not flag: 
-				break
+				data = remote.recv(4096)
+				if len(data) > 0: 
+					flag = True
+					if encodeSend(sock, data) <= 0: break
+				else:
+					links.remove(remote)
 	def handle(self):
 		try:
 			print 'Socks connection from ', self.client_address 
