@@ -1,9 +1,8 @@
 # Options
-
 remoteList=[
-("127.0.0.1", 5060), # Localhost for single layer proxy
-("202.112.159.251", 8080), # Xue Huo
-("184.22.246.194", 5060), # Ming's VPS
+[("127.0.0.1", 5060), False], # Localhost for single layer proxy
+[("202.112.159.251", 8080), False], # Xue Huo
+#[("184.22.246.194", 5060), True]# Ming's VPS
 ]
 
 # CODE
@@ -23,11 +22,9 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		try:
 			remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			remote.settimeout(6)  # 4 ~ 7 second
+			remote.settimeout(4)  # 4 ~ 7 second
 			remote.connect(linkinfo)
 			encodeSend(remote, sockshead)	#Resend head
-			time.sleep(0.2)
-			
 			reply = decodeRecv(remote, 4)
 			if reply[1] != '\x00':
 				remote.close()
@@ -48,7 +45,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				remote.settimeout(10)
 				return [True, reply, ip]
 		except socket.error, msg:
-			print "Error in check_remote: ", msg, "to: ", linkinfo
+			#print "Error in check_remote: ", msg, "to: ", linkinfo
 			remote.close()
 		return [False, "", ""]
 	def handle_transfer(self, sock, links, ip):
@@ -60,39 +57,41 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			r, w, e = select.select(links, [], []);
 			# forward to all active remote links
 			flag = False
-			for link in r:
-				if link is sock:	#Client socket -- only one
-					data = sock.recv(4096)
-					if len(data) == 0:
-						links.remove(sock)
-						continue
-					flag = True
-					for l in [x for x in links if x != sock]:
-						if encodeSend(l, data) <= 0:  #Clear some server
-							links.remove(l)
-							if l in r: r.remove(l)
+			try:
+				for link in r:
+					if link is sock:	#Client socket -- only one
+						data = sock.recv(4096)
+						if len(data) == 0:
+							links.remove(sock)
+							continue
+						flag = True
+						for l in [x for x in links if x != sock]:
+							if encodeSend(l, data) <= 0:  #Clear some server
+								links.remove(l)
+								if l in r: r.remove(l)
+								l.close()
+					else:				#Server socket
+						data = decodeRecv(link, 4096)
+						if len(data) == 0: 
+							link.close()
+							links.remove(link)
+							continue
+						flag = True
+						#Close all server sockets except the ont first responced.
+						for l in [x for x in links if x != sock and x != link]:
 							l.close()
-					time.sleep(0.05)
-				else:				#Client socket
-					data = decodeRecv(link, 4096)
-					if len(data) == 0: 
-						link.close()
-						links.remove(link)
-						continue
-					flag = True
-					#Close all server sockets except the ont first responced.
-					for l in [x for x in links if x != sock and x != link]:
-						l.close()
-						if l in r: r.remove(l)
-					links = [sock, link]
-					
-					sema_desire.acquire()	#Semaphore, update desirelist
-					desirelist[ip] = (time.time() + 2 * 3600, link.getpeername())
-					sema_desire.release()
-					
-					if sock.send(data) <= 0:
-						flag = False
-						break
+							if l in r: r.remove(l)
+						links = [sock, link]
+						
+						sema_desire.acquire()	#Semaphore, update desirelist
+						desirelist[ip] = [time.time() + 2 * 3600, link.getpeername()]
+						sema_desire.release()
+						
+						if sock.send(data) <= 0:
+							flag = False
+							break
+			except socket.error, msg:
+				print "Interrupted while transfering: ", msg
 		#Close all connection
 		for link in links:
 			link.close()
@@ -112,7 +111,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			sock = self.request			
 			sock.recv(262)
 			sock.send(b"\x05\x00")
-			time.sleep(0.1)
 			data = sock.recv(4)
 			socksHead = data
 			mode = ord(data[1])
@@ -124,38 +122,38 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				data = sock.recv(1); socksHead += data
 				addr = sock.recv(ord(data[0])); socksHead += addr
 			socksHead += sock.recv(2); #Port
-			links=[]
 			
 			# Update desire list if exist and expire
-			#sema_ip.acquire()
-			#sema_desire.acquire()
+			links=[]
 			if (addr in iplist and 
 				iplist[addr] in desirelist and 
 				desirelist[iplist[addr]][0] > time.time()):
-				flag, reply, ip = self.check_remote(desirelist[iplist[addr]][1], socksHead, links)
-			#sema_ip.release()
-			#sema_desire.release()
+				flag, reply, ip = self.check_remote(desirelist[iplist[addr]][1],
+				 socksHead, links)
 			# Create desire list
 			if len(links) == 0:
 				for linkinfo in remoteList:
-					flag, ret, tmp_ip = self.check_remote(linkinfo, socksHead, links)
+					flag, ret, ip = self.check_remote(linkinfo[0], socksHead, links)
 					if flag: 	#Server support this protocol
-						reply, ip = ret, tmp_ip
+						reply = ret
 						#Solve DNS hijack problem
 						sema_ip.acquire()
-						if addr in iplist and iplist[addr] != ip:
-							links.remove(links[len(links) - 2])
-						iplist[addr] = ip
+						if addr in iplist and iplist[addr] != ip and linkinfo[1]:
+							links = [links[-1]]
+						if addr not in iplist:
+							iplist[addr] = ip
 						sema_ip.release()
-				if len(links) == 0:
-					print 'No usable remote proxy for ' + addr
-					sock.close()
-					return
+					#else:
+					#	print linkinfo[0], " failed to get ", addr
+			if len(links) == 0:
+				print 'No usable remote proxy for ' + addr
+				sock.close()
+				return
 			# Global check
 			sock.send(reply)
-			self.handle_transfer(sock, links, ip)
+			self.handle_transfer(sock, links, iplist[addr])
 		except socket.error, msg:
-			print 'Socket Error: ', msg
+			print 'Socket Error in handle(): ', msg
 		except Exception:
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			print "Other Exception: "
@@ -164,7 +162,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 def main():
 	try:
 		for i in xrange(len(remoteList) - 1, -1, -1):
-			if not hostalive(remoteList[i]):
+			if not hostalive(remoteList[i][0]):
 				remoteList.remove(remoteList[i])
 		if len(remoteList) == 0:
 			print "No available server, I'm dead now"
@@ -174,7 +172,7 @@ def main():
 		server = ThreadingTCPServer(('', 5070), ProxyServer)
 		server_thread = threading.Thread(target=server.serve_forever)
 		server_thread.start()
-	except Exception:
-		print "Exception in main: " , sys.exc_info()[0]
+	except Exception, msg:
+		print "Exception in main: " , msg
 if __name__ == '__main__':
 	main()

@@ -46,7 +46,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if mode == 1: #1. Connection mode
 					remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-					remote.settimeout(4) # 4 second
+					remote.settimeout(3) # 4 second
 					remote.connect((addr, port))
 					local = remote.getsockname()
 					reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
@@ -57,7 +57,6 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				print 'Connection refused or time out to ', addr
 				reply = b"\x05\x07\x00\x01"
 				encodeSend(sock, reply)
-				time.sleep(0.1)
 				sock.close()
 				remote.close()
 				return
@@ -70,15 +69,11 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					self.handle_transfer(sock, remote)
 		except socket.error, msg:
 			print 'Socket Error: ', msg
-		except IOError as e:
-		    print "I/O error({0}): {1}".format(e.errno, e.strerror)
-		except IndexError:
-		    print "IndexError! OMG!!!"
-		except Exception:
-			print "Other exception: " , sys.exc_info()[0]
+		except Exception, msg:
+			print "Other exception: " , msg
 		#Close
-		if sock is not None: sock.close()
-		if remote is not None: remote.close()
+		if sock is not None: 	sock.close()
+		if remote is not None: 	remote.close()
 def main():
 	try:
 		print "Start listening..."
@@ -86,7 +81,7 @@ def main():
 		server = ThreadingTCPServer(('', 5060), ProxyServer)
 		server_thread = threading.Thread(target=server.serve_forever)
 		server_thread.start()
-	except Exception:
-		print "Exception in main: " , sys.exc_info()[0]
+	except Exception, msg:
+		print "Exception in main: ", msg
 if __name__ == '__main__':
 	main()
