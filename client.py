@@ -2,7 +2,7 @@
 remoteList=[
 [("127.0.0.1", 5060), False], # Localhost for single layer proxy
 [("202.112.159.251", 8080), False], # Xue Huo
-#[("184.22.246.194", 5060), True]# Ming's VPS
+[("184.22.246.194", 5060), True]# Ming's VPS
 ]
 
 # CODE
@@ -111,6 +111,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			sock = self.request			
 			sock.recv(262)
 			sock.send(b"\x05\x00")
+			time.sleep(0.1)
 			data = sock.recv(4)
 			socksHead = data
 			mode = ord(data[1])
