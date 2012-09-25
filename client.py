@@ -2,7 +2,7 @@
 
 remoteList=[
 ("127.0.0.1", 5060), # Localhost for single layer proxy
-#("202.112.159.251", 8080), # Xue Huo
+("202.112.159.251", 8080), # Xue Huo
 ("184.22.246.194", 5060), # Ming's VPS
 ]
 
@@ -23,9 +23,11 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		try:
 			remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-			remote.settimeout(4)  # 6 second
+			remote.settimeout(6)  # 4 ~ 7 second
 			remote.connect(linkinfo)
 			encodeSend(remote, sockshead)	#Resend head
+			time.sleep(0.2)
+			
 			reply = decodeRecv(remote, 4)
 			if reply[1] != '\x00':
 				remote.close()
@@ -99,7 +101,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		global desirelist,remoteList, iplist, userlist
 		global sema_ip, sema_desire, sema_user
 		try:
-			print "Number of threads: ", threading.activeCount()
+			#print "Number of threads: ", threading.activeCount()
 			
 			sema_user.acquire()
 			if self.client_address[0] not in userlist:
@@ -139,8 +141,8 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					flag, ret, tmp_ip = self.check_remote(linkinfo, socksHead, links)
 					if flag: 	#Server support this protocol
 						reply, ip = ret, tmp_ip
-						sema_ip.acquire()
 						#Solve DNS hijack problem
+						sema_ip.acquire()
 						if addr in iplist and iplist[addr] != ip:
 							links.remove(links[len(links) - 2])
 						iplist[addr] = ip
@@ -153,7 +155,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			sock.send(reply)
 			self.handle_transfer(sock, links, ip)
 		except socket.error, msg:
-			print 'Socket Error: ' + os.strerror(msg[0])
+			print 'Socket Error: ', msg
 		except Exception:
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			print "Other Exception: "

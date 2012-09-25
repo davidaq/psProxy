@@ -24,7 +24,8 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 					links.remove(remote)
 	def handle(self):
 		try:
-			print 'Socks connection from ', self.client_address 
+			sock = remote = None
+			#print 'Socks connection from ', self.client_address 
 			# The Socks5 is partly moved to client
 			sock = self.request
 			#1. Version
@@ -40,12 +41,12 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				addr = decodeRecv(sock, ord(decodeRecv(sock, 1)[0]))
 			port = struct.unpack('>H', decodeRecv(sock, 2))[0]
 			reply = b"\x05\x00\x00\x01"
-			print 'Request to ' + addr + ' Port: ' + str(port)
+			#print 'Request to ' + addr + ' Port: ' + str(port)
 			try:
 				if mode == 1: #1. Connection mode
 					remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					remote.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-					remote.settimeout(2.5) # 2 second
+					remote.settimeout(4) # 4 second
 					remote.connect((addr, port))
 					local = remote.getsockname()
 					reply += socket.inet_aton(local[0]) + struct.pack(">H", local[1])
@@ -56,6 +57,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				print 'Connection refused or time out to ', addr
 				reply = b"\x05\x07\x00\x01"
 				encodeSend(sock, reply)
+				time.sleep(0.1)
 				sock.close()
 				remote.close()
 				return
@@ -66,18 +68,20 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				if mode == 1: #1. connection mode
 					remote.settimeout(10)
 					self.handle_transfer(sock, remote)
-			sock.close()
-			remote.close()
 		except socket.error, msg:
-			print 'Socket Error: ' + os.strerror(msg[0])
+			print 'Socket Error: ', msg
 		except IOError as e:
 		    print "I/O error({0}): {1}".format(e.errno, e.strerror)
 		except IndexError:
 		    print "IndexError! OMG!!!"
 		except Exception:
 			print "Other exception: " , sys.exc_info()[0]
+		#Close
+		if sock is not None: sock.close()
+		if remote is not None: remote.close()
 def main():
 	try:
+		print "Start listening..."
 		threading.stack_size(1024 * 512)
 		server = ThreadingTCPServer(('', 5060), ProxyServer)
 		server_thread = threading.Thread(target=server.serve_forever)
