@@ -72,12 +72,12 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 						flag = True
 					else:				#Server socket
 						if sock.send(decodeRecv(link, 4096)) <= 0: #Data == 0?
-							link.close()
+							#link.close()
 							links.remove(link)
 							break
 						#Close all server sockets except the ont first responced.
 						for l in [x for x in links if x != sock and x != link]:
-							l.close()
+							#l.close()
 							if l in r: r.remove(l)
 							if l in links: links.remove(l)
 						sema_desire.acquire()	#Semaphore, update desirelist
