@@ -56,8 +56,8 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 		flag = True
 		cnt = 0	#For reconnect
 		while len(links) > 0 and (flag or cnt < 10):
-			if not flag: 
-				cnt += 1
+			if not flag: cnt += 1
+			else:	cnt = 0;
 			r, w, e = select.select(links, [], [], 0.5);
 			# forward to all active remote links
 			flag = False
@@ -67,6 +67,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 						data = sock.recv(4096)
 						if len(data)  == 0:
 							links.remove(sock)
+							break
 						for l in [x for x in links if x != sock]:
 							encodeSend(l, data)
 						flag = True
