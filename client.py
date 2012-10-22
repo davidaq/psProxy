@@ -1,15 +1,7 @@
-# Options
-remoteList=[
-[("127.0.0.1", 5060), False], # Localhost for single layer proxy
-[("202.112.159.251", 8080), False], # Xue Huo
-[("184.22.246.194", 5060), True], # Ming's VPS
-]
-
-# CODE
-
+#!/usr/bin/python
 import socket, sys, select, SocketServer, time, threading, os, traceback
-from common import *
-from fakeiplist import *
+from common import *		# Including public function
+from resources import * 	# Including remotelist and fakeiplist
 desirelist={}
 iplist = {}
 userlist = {}
@@ -40,6 +32,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			
 			#Get ip!! (not a part of socks5 protocol)
 			ip = socket.inet_ntoa(decodeRecv(remote, 4))
+			
 			if len(reply) == nextLen + 4 and ip not in fakeip:
 				links.append(remote)
 				remote.settimeout(10)
@@ -47,8 +40,9 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			if ip in fakeip:
 				print "Fake ip:" , ip
 		except socket.error, msg:
+			pass
 			#print "Error in check_remote: ", msg, "to: ", linkinfo
-			remote.close()
+		remote.close()
 		return [False, "", ""]
 	def handle_transfer(self, sock, links, ip):
 		global desirelist, sema_desire
@@ -127,27 +121,24 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 				flag, reply, ip = self.check_remote(desirelist[iplist[addr]][1],
 				 socksHead, links)
 			# Create desire list
-			if len(links) == 0:
+			failed = 0
+			while len(links) == 0 and failed < 5:
+				failed += 1
 				for linkinfo in remoteList:
 					flag, ret, ip = self.check_remote(linkinfo[0], socksHead, links)
 					if flag: 	#Server support this protocol
 						reply = ret
 						sema_ip.acquire()
-						#if addr in iplist and iplist[addr] != ip and linkinfo[1]:
-						#	links = [links[-1]]
-						#	iplist[addr] = ip
 						if addr not in iplist:
 							iplist[addr] = ip
 						sema_ip.release()
-					#else:
-					#	print linkinfo[0], " failed to get ", addr
 			if len(links) == 0:
 				print 'No usable remote proxy for ' + addr
 				sock.close()
 				return
 			# Global check
 			sock.send(reply)
-			self.handle_transfer(sock, links, iplist[addr])
+			self.handle_transfer(sock, links, iplist[addr]) #Start transfering
 		except socket.error, msg:
 			pass
 			#print 'Socket Error in handle(): ', msg
@@ -158,12 +149,12 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			                              limit=2, file=sys.stdout)
 def main():
 	try:
-		for i in xrange(len(remoteList) - 1, -1, -1):
-			if not hostalive(remoteList[i][0]):
-				remoteList.remove(remoteList[i])
-		if len(remoteList) == 0:
-			print "No available server, I'm dead now"
-			return
+#		for i in xrange(len(remoteList) - 1, -1, -1):
+#			if not hostalive(remoteList[i][0]):
+#				remoteList.remove(remoteList[i])
+#		if len(remoteList) == 0:
+#			print "No available server, I'm dead now"
+#			return
 		print "Check remote list done, start listening..."
 		threading.stack_size(1024 * 512)
 		server = ThreadingTCPServer(('', 5070), ProxyServer)

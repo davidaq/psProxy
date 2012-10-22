@@ -30,3 +30,8 @@ fakeip = {
 	"213.169.251.35" ,
 	##
 }
+remoteList = [
+[("127.0.0.1", 5060), False], # Localhost for single layer proxy
+#[("202.112.159.251", 8080), False], # Xue Huo
+[("184.22.246.194", 5060), True], # Ming's VPS
+]

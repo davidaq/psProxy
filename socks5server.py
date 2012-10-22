@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import socket, sys, select, SocketServer, time, threading, os
 from common import *
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
