@@ -35,7 +35,7 @@ class ProxyServer(SocketServer.StreamRequestHandler):
 			
 			if len(reply) == nextLen + 4 and ip not in fakeip:
 				links.append(remote)
-				remote.settimeout(10)
+				remote.settimeout(30)
 				return [True, reply, ip]
 			if ip in fakeip:
 				print "Fake ip:" , ip
