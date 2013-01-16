@@ -98,8 +98,8 @@ class Socks5Server(SocketServer.StreamRequestHandler):
 		try:
 			self.client = SecureSocket(sock=self.request, secure=SECURE)
 			self.remote = None
-			if self.auth() == False:
-				raise Exception("Authentication failed")
+			#if self.auth() == False:
+			#	raise Exception("Authentication failed")
 			#print "Authentication succeeded"
 			if self.handle_request() == False:
 				raise Exception("Handling request failed")
