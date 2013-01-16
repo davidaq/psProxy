@@ -6,6 +6,18 @@ serverlist = (
 	("184.22.246.194", 5060)
 )
 
+trustedserver = ("184.22.246.194", 5060)
+
+sensitive_words = (
+	"google",
+	"youtube",
+	"blogspot",
+	"git",
+	"gfw",
+	"ytimg",
+	"blogger"
+)
+
 fakeip = {
 	"4.36.66.178" ,
 	"8.7.198.45" ,

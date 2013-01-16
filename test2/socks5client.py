@@ -10,15 +10,20 @@ from common import *
 
 history = {}
 semaphore = threading.BoundedSemaphore(1)
-def getHistory(ip):
+def get_history(ip):
 	if ip not in history:
 		return None
 	ret = history[ip]
 	return ret
-def setHistory(ip, data):
+def set_history(ip, data):
 	semaphore.acquire()
 	history[ip] = data
 	semaphore.release()
+def is_sensitive(addr):
+	for i in sensitive_words:
+		if i in addr:
+			return True
+	return False
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pass
 
@@ -139,9 +144,11 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 				self.data += addr
 			self.data += self.client.recvall(2)
 
-			record = getHistory(addr)
+			record = get_history(addr)
 
-			if record and record[0] > time.time():
+			if (record and record[0] > time.time()) or is_sensitive(addr):
+				if not record or record[0] > time.time():
+					record = (time.time() + 10 * 3600, trustedserver)
 				self.remote[0] = create_socket(record[1], secure = True)
 				self.update()
 				if self.cnt != 0:
@@ -150,7 +157,7 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 					self.evaluate_result("handle request failed")
 					self.update()
 
-			if not self.remote[0]:
+			if self.cnt == 0 or not self.remote[0]:
 				self.init()
 				self.asyn_do(self.connect_remote, "(i, serverlist[i], self.remote)")
 				self.update()
@@ -178,7 +185,7 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 						self.remote[i].close()
 						self.remote[i] = None
 				self.update()
-				setHistory(addr, (time.time() + 3600, target))
+				set_history(addr, (time.time() + 3600, target))
 			
 			#3.Transfer
 			self.transfer()
