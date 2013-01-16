@@ -87,8 +87,9 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 		while True:
 			try:
 				r, w, e = select.select(links, [], [], 300);
-			except: 
-				break	
+			except Exception as e: 
+				printexc()
+				break
 			if len(r) == 0: break
 			if self.client in r:
 				if remote.send(self.client.recv(4096)) <= 0: 
@@ -105,20 +106,21 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 				self.tictoc.remove(self.tictoc[i])
 				self.cnt -= 1
 	
+	def init(self):
+		self.cnt = len(serverlist)
+		self.remote = [None for i in xrange(self.cnt)]
+		self.threads = [None for i in xrange(self.cnt)] 
+		self.tictoc = [None for i in xrange(self.cnt)]
+	
 	def handle(self):
 		try:
 			self.client = SecureSocket(sock=self.request, secure=False)
-			self.cnt = len(serverlist)
-			self.remote = [None for i in xrange(self.cnt)]
-			self.threads = [None for i in xrange(self.cnt)] 
-			self.tictoc = [None for i in xrange(self.cnt)]
-
-			#Build connection with servers
-
+			self.init()
 
 			#1.Version
+			time.sleep(0.01)
 			self.data = self.client.recvall(2)
-			self.data += self.client.recv(ord(self.data[1]))
+			self.data += self.client.recvall(ord(self.data[1]))
 			if self.data[0] != b'\x05':
 				self.client.send(b'\x05\xFF')
 				raise Exception("Unsupported version")
@@ -140,9 +142,16 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 			record = getHistory(addr)
 
 			if record and record[0] > time.time():
-				self.remote = [create_socket(record[1], secure = True)]
+				self.remote[0] = create_socket(record[1], secure = True)
+				self.update()
+				if self.cnt != 0:
+					self.result = [None for i in xrange(self.cnt)]
+					self.handle_request(0, self.data, self.result, self.tictoc)
+					self.evaluate_result("handle request failed")
+					self.update()
+
 			if not self.remote[0]:
-				self.remote = [None for i in xrange(self.cnt)]
+				self.init()
 				self.asyn_do(self.connect_remote, "(i, serverlist[i], self.remote)")
 				self.update()
 				if self.cnt == 0:
@@ -167,7 +176,8 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 				for i in xrange(self.cnt):
 					if i != ret_id:
 						self.remote[i].close()
-				self.remote = [self.remote[ret_id]]
+						self.remote[i] = None
+				self.update()
 				setHistory(addr, (time.time() + 3600, target))
 			
 			#3.Transfer
