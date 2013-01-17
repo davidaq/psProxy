@@ -72,7 +72,7 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 	def close_one_remote(self, i):
 		if self.remote[i]:
 			self.remote[i].close()
-		self.remote[i] = None
+		self. remote[i] = None
 
 	def evaluate_result(self, errormsg):
 		ret = (False, "")
@@ -88,18 +88,23 @@ class Socks5Client(SocketServer.StreamRequestHandler):
 
 	def transfer(self):
 		remote = self.remote[0]
-		links = [self.client, remote]
+		poll = select.poll()
+		poll.register(self.client.fileno(), 1)
+		poll.register(remote.fileno(), 1)
+#links = [self.client, remote]
 		while True:
 			try:
-				r, w, e = select.select(links, [], [], 300);
+#r, w, e = select.select(links, [], [], 300);
+				r = poll.poll(100000)
+				r = [tmp[0] for tmp in r]
 			except Exception as e: 
 				printexc()
 				break
 			if len(r) == 0: break
-			if self.client in r:
+			if self.client.fileno() in r:
 				if remote.send(self.client.recv(4096)) <= 0: 
 					break
-			if remote in r:
+			if remote.fileno() in r:
 				if self.client.send(remote.recv(4096)) <= 0: 
 					break
 
